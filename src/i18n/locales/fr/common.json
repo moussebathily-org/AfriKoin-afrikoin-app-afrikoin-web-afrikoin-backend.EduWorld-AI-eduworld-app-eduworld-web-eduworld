@@ -1,0 +1,182 @@
+{
+  "app": {
+    "name": "AfriKoin",
+    "tagline": "Acheter & vendre en confiance partout en Afrique"
+  },
+  "auth": {
+    "login": "Se connecter",
+    "signup": "Créer un compte",
+    "logout": "Se déconnecter",
+    "email": "Email",
+    "password": "Mot de passe",
+    "name": "Nom complet",
+    "welcome": "Bienvenue sur AfriKoin",
+    "createAccount": "Créez votre compte",
+    "alreadyHaveAccount": "Vous avez déjà un compte ?",
+    "noAccount": "Vous n'avez pas de compte ?"
+  },
+  "navigation": {
+    "home": "Accueil",
+    "likes": "Likes",
+    "holidays": "Fêtes",
+    "wallet": "Wallet",
+    "profile": "Profil",
+    "search": "Rechercher",
+    "notifications": "Notifications",
+    "create": "Créer"
+  },
+  "market": {
+    "post": "Publier une annonce",
+    "search": "Rechercher",
+    "price": "Prix",
+    "noResults": "Aucun résultat trouvé",
+    "categories": "Catégories"
+  },
+  "wallet": {
+    "balance": "Solde",
+    "addFunds": "Ajouter des fonds",
+    "withdraw": "Retirer",
+    "transactions": "Transactions",
+    "send": "Envoyer",
+    "receive": "Recevoir"
+  },
+  "likes": {
+    "buyCredits": "Acheter des crédits de likes",
+    "remaining": "Crédits restants : {{count}}",
+    "noCredits": "Plus de crédits"
+  },
+  "posts": {
+    "noPostsYet": "Aucun post pour le moment",
+    "beFirst": "Soyez le premier à partager du contenu !",
+    "likes": "likes",
+    "comments": "commentaires",
+    "share": "Partager"
+  },
+  "holidays": {
+    "discover": "Découvrir",
+    "upcoming": "Fêtes à venir",
+    "today": "Aujourd'hui",
+    "tomorrow": "Demain",
+    "daysLeft": "jours restants",
+    "independence": {
+      "mali": "Fête de l'Indépendance du Mali",
+      "maliDesc": "Célébration de l'indépendance du Mali",
+      "burkina": "Fête de l'Indépendance du Burkina Faso",
+      "burkinaDesc": "Célébration de l'indépendance du Burkina Faso",
+      "niger": "Fête de l'Indépendance du Niger",
+      "nigerDesc": "Célébration de l'indépendance du Niger"
+    }
+  },
+  "welcome": {
+    "title": "Bienvenue sur AfriKoin !",
+    "subtitle": "Connectez-vous, échangez et célébrez à travers l'Afrique",
+    "freeLikes": "10 likes gratuits",
+    "premiumContent": "Contenu premium",
+    "community": "Communauté",
+    "createFirstPost": "Créer mon premier post"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "save": "Sauvegarder",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "language": "Langue"
+  },
+  "marketing": {
+    "hero": {
+      "title": "Une communauté vidéo mondiale",
+      "subtitle": "Nous te facilitons l'usage de l'application, afin que tu puisses regarder de superbes vidéos et également créer tes propres vidéos amusantes et mémorables à partager avec le monde entier. Pimente tes vidéos avec nos filtres d'effets spéciaux, des autocollants amusants, et bien plus encore.",
+      "tagline": "Là où de vraies personnes alimentent votre curiosité."
+    },
+    "features": {
+      "watch": {
+        "title": "Regarde des millions de vidéos",
+        "desc": "Une expérience adaptée spécifiquement selon tes préférences en fonction du contenu que tu regardes, aimes et partages ! Afrikoin s'adapte à tes goûts pour te proposer les vidéos les plus pertinentes, intéressantes, amusantes, décalées et captivantes que tu ne te lasseras jamais de regarder !"
+      },
+      "community": {
+        "title": "Se divertir et s'inspirer d'une communauté mondiale de créateurs",
+        "desc": "Des millions de créateurs sont sur Afrikoin pour présenter leurs talents incroyables, leurs moments précieux et leurs connaissances."
+      },
+      "music": {
+        "title": "Ajoute tes musiques et sons préférés",
+        "desc": "Édite facilement tes vidéos avec des millions de clips musicaux et de sons gratuits ! Playlists pour les morceaux les plus populaires et tous genres."
+      },
+      "stickers": {
+        "title": "Autocollants et filtres visage",
+        "desc": "Plus de 100 autocollants émoticônes pour améliorer tes vidéos. Débloque des filtres faciaux amusants et des effets beauté."
+      },
+      "editing": {
+        "title": "Outils d'édition simples",
+        "desc": "Coupe, fusionne et duplique facilement des clips vidéo."
+      },
+      "livefilters": {
+        "title": "Filtres Live streaming",
+        "desc": "Des designs frais et créatifs, mis à jour en continu."
+      },
+      "variety": {
+        "title": "Variété de contenus",
+        "desc": "Danse, comédie, vlog, sport, DIY, animaux — tout prêt à être consommé."
+      }
+    },
+    "explore": {
+      "title": "Explorez et développez vos centres d’intérêt",
+      "items": [
+        "Demandez à l’IA de rechercher des sujets qui comptent pour vous, et obtenez instantanément des résultats interactifs",
+        "Parcourez Marketplace à la recherche de bonnes affaires et de perles rares",
+        "Personnalisez votre Fil pour voir plus de contenu que vous aimez",
+        "Regardez des reels et d’autres vidéos courtes pour apprendre ou vous divertir rapidement"
+      ]
+    },
+    "connect": {
+      "title": "Communiquez avec des personnes et des communautés",
+      "items": [
+        "Rejoignez des groupes pour obtenir des conseils de vraies personnes",
+        "Activez le partage pour gagner du temps",
+        "Envoyez à votre BFF des publications que vous seuls comprenez"
+      ]
+    },
+    "share": {
+      "title": "Partagez votre univers",
+      "items": [
+        "Utilisez l’IA générative pour créer des images personnalisées ou rédiger des publications",
+        "Personnalisez votre profil et contrôlez avec qui vous partagez",
+        "Créez facilement des reels à partir de modèles populaires",
+        "Capturez et partagez l’instant présent dans des stories"
+      ]
+    },
+    "cta": {
+      "create": "Créer un reel",
+      "aiStudio": "Créer avec l’IA",
+      "getStarted": "Découvrir Afrikoin"
+    }
+  },
+  "likes": {
+    "purchase": {
+      "title": "Acheter des Likes",
+      "pack_1000": "Pack 1000 Likes",
+      "price_1000": "2,99 €",
+      "button_buy": "Acheter {{likes}} likes ({{price}})",
+      "insufficient_credits": "Crédits insuffisants",
+      "get_more_likes": "Obtenir plus de likes"
+    },
+    "payment": {
+      "success_title": "Achat réussi !",
+      "success_message": "Votre achat de {{likes}} likes a été traité avec succès.",
+      "new_balance": "Nouveau solde : {{balance}} likes",
+      "error_title": "Erreur de paiement",
+      "error_message": "Une erreur s'est produite lors du traitement de votre paiement.",
+      "loading": "Vérification du paiement...",
+      "return_wallet": "Retour au portefeuille"
+    }
+  },
+  "_meta": {
+    "rtl": false
+  }
+}
