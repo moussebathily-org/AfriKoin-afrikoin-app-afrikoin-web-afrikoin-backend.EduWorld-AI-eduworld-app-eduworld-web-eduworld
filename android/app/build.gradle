@@ -1,0 +1,181 @@
+apply plugin: 'com.android.application'
+
+// Load optional local signing properties from android/gradle-local.properties (not committed)
+try {
+    def localPropsFile = rootProject.file('android/gradle-local.properties')
+    if (localPropsFile.exists()) {
+        def Properties props = new Properties()
+        localPropsFile.withInputStream { stream -> props.load(stream) }
+        props.each { k, v ->
+            if (!project.hasProperty(k.toString())) {
+                project.ext.set(k.toString(), v.toString())
+            }
+        }
+    }
+} catch(Exception e) {
+    logger.info "No android/gradle-local.properties found or failed to load: ${e.message}"
+}
+
+def RESOLVED_STORE_FILE = project.hasProperty("MYAPP_UPLOAD_STORE_FILE") ? project.property("MYAPP_UPLOAD_STORE_FILE") : (System.getenv("ANDROID_KEYSTORE") ?: System.getenv("RELEASE_STORE_FILE"))
+def RESOLVED_STORE_PASSWORD = project.hasProperty("MYAPP_UPLOAD_STORE_PASSWORD") ? project.property("MYAPP_UPLOAD_STORE_PASSWORD") : (System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: System.getenv("RELEASE_STORE_PASSWORD"))
+def RESOLVED_KEY_ALIAS = project.hasProperty("MYAPP_UPLOAD_KEY_ALIAS") ? project.property("MYAPP_UPLOAD_KEY_ALIAS") : (System.getenv("ANDROID_KEY_ALIAS") ?: System.getenv("RELEASE_KEY_ALIAS"))
+def RESOLVED_KEY_PASSWORD = project.hasProperty("MYAPP_UPLOAD_KEY_PASSWORD") ? project.property("MYAPP_UPLOAD_KEY_PASSWORD") : (System.getenv("ANDROID_KEY_PASSWORD") ?: System.getenv("RELEASE_KEY_PASSWORD"))
+def HAS_RELEASE_SIGNING = RESOLVED_STORE_FILE != null && RESOLVED_STORE_FILE.toString().trim().length() > 0
+
+android {
+    namespace "app.lovable.afrikoin"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "app.lovable.afrikoin"
+        minSdk 22
+        targetSdk 35
+        def refName = System.getenv("GITHUB_REF_NAME") ?: System.getenv("REF_NAME") ?: ""
+        def m = (refName =~ /^v(\d+)\.(\d+)\.(\d+)$/)
+        def runNum = 0
+        try {
+            runNum = (System.getenv("GITHUB_RUN_NUMBER") ?: "0") as Integer
+        } catch (ignored) { runNum = 0 }
+        def computedVersionCode = m ? (m[0][1].toInteger() * 10000 + m[0][2].toInteger() * 100 + m[0][3].toInteger()) : (20000000 + runNum)
+        def computedVersionName = m ? "${m[0][1]}.${m[0][2]}.${m[0][3]}" : "dev.${runNum}"
+        versionCode computedVersionCode
+        versionName computedVersionName
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        androidResources {
+             // Files and dirs to omit from the packaged APK/AAB
+             ignoreAssetsPattern "!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (HAS_RELEASE_SIGNING) {
+                signingConfig signingConfigs.release
+            }
+        }
+        debug {
+            applicationIdSuffix ".debug"
+            debuggable true
+        }
+    }
+
+    signingConfigs {
+        release {
+            if (HAS_RELEASE_SIGNING) {
+                storeFile file(RESOLVED_STORE_FILE)
+                storePassword RESOLVED_STORE_PASSWORD
+                keyAlias RESOLVED_KEY_ALIAS
+                keyPassword RESOLVED_KEY_PASSWORD
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    bundle {
+        language {
+            enableSplit = false
+        }
+        density {
+            enableSplit = true
+        }
+        abi {
+            enableSplit = true
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation project(':capacitor-android')
+    implementation project(':capacitor-app')
+    implementation project(':capacitor-haptics')
+    implementation project(':capacitor-keyboard')
+    implementation project(':capacitor-status-bar')
+    implementation project(':capacitor-device')
+    implementation 'androidx.core:core-ktx:1.13.1'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.activity:activity:1.9.0'
+    implementation 'androidx.fragment:fragment:1.8.3'
+    implementation 'androidx.coordinatorlayout:coordinatorlayout:1.2.0'
+    implementation 'androidx.webkit:webkit:1.11.0'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    implementation 'androidx.preference:preference:1.2.1'
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info "google-services.json not found, google-services plugin not applied. Push Notifications won't work"
+}
+
+// Diagnostic task to print resolved signing configuration
+tasks.register("printSigningConfig") {
+    group = "help"
+    description = "Prints resolved Android release signing configuration (without secrets)."
+    doLast {
+        println "---- Android Release Signing (resolved) ----"
+        println "HAS_RELEASE_SIGNING: ${HAS_RELEASE_SIGNING}"
+        println "storeFile: ${RESOLVED_STORE_FILE ?: '(not set)'}"
+        println "storeFile exists: ${RESOLVED_STORE_FILE ? file(RESOLVED_STORE_FILE).exists() : false}"
+        println "keyAlias set: ${RESOLVED_KEY_ALIAS ? 'true' : 'false'}"
+        def extOverride = project.hasProperty('android.injected.signing.store.file')
+        println "Android Studio externalOverride: ${extOverride}"
+        if (extOverride) {
+            println "android.injected.signing.store.file=" + project.property('android.injected.signing.store.file')
+        }
+        println "Source preference: gradle-local.properties > gradle.properties > ENV"
+        println "-------------------------------------------"
+    }
+}
+
+// Fail-fast check to prevent broken externalOverride from Android Studio
+tasks.register("doctorSigning") {
+    group = "verification"
+    description = "Detects Android Studio external signing override and validates the injected keystore path."
+    doLast {
+        def hasInjected = project.hasProperty('android.injected.signing.store.file')
+        if (hasInjected) {
+            def injectedPath = project.property('android.injected.signing.store.file')?.toString()
+            def f = injectedPath ? new File(injectedPath) : null
+            if (!f || !f.exists()) {
+                throw new GradleException(
+                    "Signature 'externalOverride' détectée via Android Studio mais le keystore est introuvable:\n" +
+                    "  android.injected.signing.store.file=${injectedPath}\n\n" +
+                    "Solutions:\n" +
+                    "  1) Utilisez la signature gérée par Gradle (recommandé):\n" +
+                    "     - Créez android/gradle-local.properties et remplissez MYAPP_UPLOAD_*.\n" +
+                    "     - Lancez: ./gradlew :app:printSigningConfig puis :app:bundleRelease\n" +
+                    "  2) Si vous tenez à l’assistant d’Android Studio, corrigez le chemin du keystore dans le wizard.\n"
+                )
+            } else {
+                logger.lifecycle("externalOverride actif: ${injectedPath}")
+            }
+        } else {
+            logger.lifecycle("Aucune injection externalOverride détectée — signature Gradle OK.")
+        }
+    }
+}
+
+// Ensure release-related tasks run the doctor first
+gradle.projectsEvaluated {
+    tasks.matching { it.name in ['validateSigningRelease','assembleRelease','bundleRelease'] }.configureEach {
+        dependsOn 'doctorSigning'
+    }
+}
