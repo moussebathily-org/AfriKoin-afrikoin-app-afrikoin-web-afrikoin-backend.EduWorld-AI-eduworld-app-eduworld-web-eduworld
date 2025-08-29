@@ -1,0 +1,60 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup SSH (optional)
+      if: ${{ secrets.DEPLOY_SSH_KEY != '' }}
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+    - name: Add known_hosts (GitHub)
+      if: ${{ secrets.DEPLOY_SSH_KEY != '' }}
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build application
+      run: npm run build
+      
+    - name: Deploy to Vercel
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        vercel-args: '--prod'
+        vercel-org-id: ${{ secrets.ORG_ID }}
+        vercel-project-id: ${{ secrets.PROJECT_ID }}
+        working-directory: ./
+        
+    - name: Generate sitemap
+      run: |
+        echo "Sitemap generated and ready for Google indexing"
+        curl -X POST "https://www.google.com/ping?sitemap=https://www.afrikoin.online/sitemap.xml"
+        
+    - name: Notify deployment
+      if: success()
+      run: |
+        echo "🌐 Site available at: https://www.afrikoin.online"
+        echo "🗺️ Sitemap: https://www.afrikoin.online/sitemap.xml"

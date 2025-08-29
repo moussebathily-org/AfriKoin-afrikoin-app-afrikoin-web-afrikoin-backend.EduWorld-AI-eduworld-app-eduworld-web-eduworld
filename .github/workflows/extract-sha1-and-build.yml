@@ -1,0 +1,170 @@
+name: "🔐 Extraire SHA-1 et build"
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha1:
+        description: "SHA-1 attendu (depuis la Play Console) — optionnel"
+        required: false
+        default: ""
+      build_aab:
+        description: "Construire l'AAB (bundleRelease)"
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  extract-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js (only if building)
+        if: inputs.build_aab == true
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Make Gradle wrapper executable (only if building)
+        if: inputs.build_aab == true
+        run: |
+          if [ -f android/gradlew ]; then chmod +x android/gradlew; fi
+
+      - name: Validate Gradle Wrapper (only if building)
+        if: inputs.build_aab == true
+        uses: gradle/wrapper-validation-action@v2
+
+      - name: Setup Gradle (only if building)
+        if: inputs.build_aab == true
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Prepare signing from secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p android/app
+
+          if [ -n "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" ]; then
+            echo "✅ Using SIGNING_KEYSTORE_BASE64"
+            echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.keystore
+            echo "MYAPP_UPLOAD_STORE_FILE=release.keystore" >> android/gradle.properties
+            echo "MYAPP_UPLOAD_STORE_PASSWORD=${{ secrets.SIGNING_KEYSTORE_PASSWORD }}" >> android/gradle.properties
+            echo "MYAPP_UPLOAD_KEY_ALIAS=${{ secrets.SIGNING_KEY_ALIAS }}" >> android/gradle.properties
+            echo "MYAPP_UPLOAD_KEY_PASSWORD=${{ secrets.SIGNING_KEY_PASSWORD }}" >> android/gradle.properties
+          elif [ -n "${{ secrets.ANDROID_KEYSTORE }}" ]; then
+            echo "✅ Using ANDROID_KEYSTORE"
+            echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 --decode > android/app/release.keystore
+            echo "MYAPP_UPLOAD_STORE_FILE=release.keystore" >> android/gradle.properties
+            echo "MYAPP_UPLOAD_STORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> android/gradle.properties
+            echo "MYAPP_UPLOAD_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> android/gradle.properties
+            echo "MYAPP_UPLOAD_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> android/gradle.properties
+          else
+            echo "⚠️ Aucun secret de keystore trouvé (SIGNING_KEYSTORE_BASE64 ou ANDROID_KEYSTORE) — impossible d'extraire le SHA-1."
+            exit 1
+          fi
+
+      - name: Afficher l'empreinte SHA-1 du keystore
+        id: sha
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "🔎 Calcul de l'empreinte SHA-1..."
+
+          # Déterminer alias et mots de passe selon les secrets présents
+          if [ -n "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" ]; then
+            ALIAS="${{ secrets.SIGNING_KEY_ALIAS }}"
+            STOREPASS="${{ secrets.SIGNING_KEYSTORE_PASSWORD }}"
+            KEYPASS="${{ secrets.SIGNING_KEY_PASSWORD }}"
+          else
+            ALIAS="${{ secrets.ANDROID_KEY_ALIAS }}"
+            STOREPASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
+            KEYPASS="${{ secrets.ANDROID_KEY_PASSWORD }}"
+          fi
+
+          RAW=$(keytool -list -v \
+            -alias "$ALIAS" \
+            -keystore android/app/release.keystore \
+            -storepass "$STOREPASS" \
+            -keypass "$KEYPASS" || true)
+
+          # Tenter SHA-1 et variantes SHA1, normaliser (UPPERCASE, sans espaces/retours/:
+          FP=$(printf "%s" "$RAW" | sed -n -e 's/.*SHA-1:\s*\(.*\)/\1/p' -e 's/.*SHA1:\s*\(.*\)/\1/p' | head -n1 | tr '[:lower:]' '[:upper:]' | tr -d ' \r:')
+
+          if [ -z "$FP" ]; then
+            echo "❌ Impossible d'extraire le SHA-1. Vérifiez alias / mots de passe."
+            exit 1
+          fi
+
+          echo "SHA-1: $FP"
+          echo "fingerprint=$FP" >> "$GITHUB_OUTPUT"
+
+          EXP="${{ inputs.expected_sha1 }}"
+          if [ -z "$EXP" ]; then EXP="${{ secrets.EXPECTED_UPLOAD_SHA1 }}"; fi
+          if [ -z "$EXP" ]; then EXP="${{ secrets.PLAY_UPLOAD_SHA1 }}"; fi
+
+          if [ -n "$EXP" ]; then
+            EXP_UP=$(echo "$EXP" | tr '[:lower:]' '[:upper:]' | tr -d ' \r:')
+            if [ "$FP" = "$EXP_UP" ]; then
+              echo "✅ L'empreinte correspond à l'attendue."
+            else
+              echo "❌ L'empreinte ne correspond pas à l'attendue."
+              echo "Attendu: $EXP_UP"
+              echo "Obtenu : $FP"
+              exit 1
+            fi
+          else
+            echo "ℹ️ Aucune valeur attendue fournie (input/secret). Vérification stricte ignorée."
+          fi
+
+      - name: Installer dépendances (only if building)
+        if: inputs.build_aab == true
+        run: npm ci --legacy-peer-deps --ignore-optional
+
+      - name: Build web app (only if building)
+        if: inputs.build_aab == true
+        run: npm run build
+
+      - name: Add Android platform if needed (only if building)
+        if: inputs.build_aab == true
+        run: |
+          if [ ! -d android/app ]; then
+            npx cap add android
+          else
+            echo "Android platform already added"
+          fi
+
+      - name: Sync Capacitor (only if building)
+        if: inputs.build_aab == true
+        run: npx cap sync android
+
+      - name: Build Android AAB (Release)
+        if: inputs.build_aab == true
+        working-directory: android
+        run: |
+          echo "🔨 Building release AAB..."
+          ./gradlew bundleRelease --stacktrace --info
+
+      - name: Upload Release AAB artifact
+        if: inputs.build_aab == true
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release.aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Résumé
+        run: |
+          echo "✅ Workflow terminé."
+          echo "🧾 SHA-1: ${{ steps.sha.outputs.fingerprint }}"
+          if [ "${{ inputs.build_aab }}" = "true" ]; then
+            echo "📦 AAB construit et uploadé comme artefact."
+          else
+            echo "ℹ️ Build AAB désactivé."
+          fi
